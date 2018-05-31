@@ -37,9 +37,3 @@ fi
 
 
 ./dev/make-distribution.sh --name ${NAME} --tgz "-Pyarn,hadoop-provided,hadoop-${HADOOP_PROFILE},parquet-provided,hive,hive-thriftserver,sparkr"
-
-if [ "$1" == "deploy" ] ; then
-   echo "scp spark-${VERSION}-bin-${NAME}.tgz to  glassfish@snurran.sics.se:/var/www/hops"
-#   scp spark-${VERSION}-bin-without-hadoop.tgz glassfish@snurran.sics.se:/var/www/hops
-fi
-
