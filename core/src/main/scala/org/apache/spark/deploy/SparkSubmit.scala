@@ -541,6 +541,8 @@ private[spark] class SparkSubmit extends Logging {
       OptionAssigner(args.keytab, YARN, ALL_DEPLOY_MODES, confKey = "spark.yarn.keytab"),
 
       // Other options
+      OptionAssigner(args.executorGPUs, STANDALONE | YARN, ALL_DEPLOY_MODES,
+        confKey = "spark.executor.gpus"),
       OptionAssigner(args.executorCores, STANDALONE | YARN | KUBERNETES, ALL_DEPLOY_MODES,
         confKey = "spark.executor.cores"),
       OptionAssigner(args.executorMemory, STANDALONE | MESOS | YARN | KUBERNETES, ALL_DEPLOY_MODES,

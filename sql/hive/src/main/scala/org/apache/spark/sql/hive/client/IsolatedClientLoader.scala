@@ -65,13 +65,14 @@ private[hive] object IsolatedClientLoader extends Logging {
           case e: RuntimeException if e.getMessage.contains("hadoop") =>
             // If the error message contains hadoop, it is probably because the hadoop
             // version cannot be resolved.
+            val fallbackVersion = "2.8.2.6"
             logWarning(s"Failed to resolve Hadoop artifacts for the version $hadoopVersion. " +
               s"We will change the hadoop version from $hadoopVersion to 2.6.0 and try again. " +
               "Hadoop classes will not be shared between Spark and Hive metastore client. " +
               "It is recommended to set jars used by Hive metastore client through " +
               "spark.sql.hive.metastore.jars in the production environment.")
             _sharesHadoopClasses = false
-            (downloadVersion(resolvedVersion, "2.6.5", ivyPath), "2.6.5")
+            (downloadVersion(resolvedVersion, "2.8.2.6", ivyPath), "2.6.5")
         }
       resolvedVersions.put((resolvedVersion, actualHadoopVersion), downloadedFiles)
       resolvedVersions((resolvedVersion, actualHadoopVersion))
@@ -109,13 +110,14 @@ private[hive] object IsolatedClientLoader extends Logging {
       Seq("hive-metastore", "hive-exec", "hive-common", "hive-serde")
         .map(a => s"org.apache.hive:$a:${version.fullVersion}") ++
       Seq("com.google.guava:guava:14.0.1",
-        s"org.apache.hadoop:hadoop-client:$hadoopVersion")
+        s"io.hops:hadoop-client:$hadoopVersion")
 
     val classpath = quietly {
       SparkSubmitUtils.resolveMavenCoordinates(
         hiveArtifacts.mkString(","),
         SparkSubmitUtils.buildIvySettings(
-          Some("http://www.datanucleus.org/downloads/maven2"),
+          Some("https://bbc1.sics.se/archiva/repository/Hops/," +
+            "http://www.datanucleus.org/downloads/maven2"),
           ivyPath),
         exclusions = version.exclusions)
     }
