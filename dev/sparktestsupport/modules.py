@@ -396,7 +396,7 @@ pyspark_core = Module(
 
 pyspark_sql = Module(
     name="pyspark-sql",
-    dependencies=[pyspark_core, hive],
+    dependencies=[pyspark_core, hive, avro],
     source_file_regexes=[
         "python/pyspark/sql"
     ],
@@ -415,6 +415,30 @@ pyspark_sql = Module(
         "pyspark.sql.udf",
         "pyspark.sql.window",
         "pyspark.sql.tests",
+        "pyspark.sql.avro.functions",
+        # unittests
+        "pyspark.sql.tests.test_appsubmit",
+        "pyspark.sql.tests.test_arrow",
+        "pyspark.sql.tests.test_catalog",
+        "pyspark.sql.tests.test_column",
+        "pyspark.sql.tests.test_conf",
+        "pyspark.sql.tests.test_context",
+        "pyspark.sql.tests.test_dataframe",
+        "pyspark.sql.tests.test_datasources",
+        "pyspark.sql.tests.test_functions",
+        "pyspark.sql.tests.test_group",
+        "pyspark.sql.tests.test_pandas_udf",
+        "pyspark.sql.tests.test_pandas_udf_grouped_agg",
+        "pyspark.sql.tests.test_pandas_udf_grouped_map",
+        "pyspark.sql.tests.test_pandas_udf_scalar",
+        "pyspark.sql.tests.test_pandas_udf_window",
+        "pyspark.sql.tests.test_readwriter",
+        "pyspark.sql.tests.test_serde",
+        "pyspark.sql.tests.test_session",
+        "pyspark.sql.tests.test_streaming",
+        "pyspark.sql.tests.test_types",
+        "pyspark.sql.tests.test_udf",
+        "pyspark.sql.tests.test_utils",
     ]
 )
 
