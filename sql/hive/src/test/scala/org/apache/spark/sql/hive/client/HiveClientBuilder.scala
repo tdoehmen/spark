@@ -39,7 +39,12 @@ private[client] object HiveClientBuilder {
     metastorePath.delete()
     extraConf ++ Map(
       "javax.jdo.option.ConnectionURL" -> s"jdbc:derby:;databaseName=$metastorePath;create=true",
-      "hive.metastore.warehouse.dir" -> warehousePath.toString)
+      "hive.metastore.warehouse.dir" -> warehousePath.toString,
+      "hops.metadata.consistent" -> "false",
+      "datanucleus.schema.autoCreateSchema" -> "true",
+      "datanucleus.schema.autoCreateTables" -> "true",
+      "datanucleus.schema.autoCreateColumns" -> "true",
+      "hive.metastore.schema.verification" -> "false")
   }
 
   // for testing only

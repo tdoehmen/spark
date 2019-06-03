@@ -429,7 +429,8 @@ private[spark] class ApplicationMaster(args: ApplicationMasterArguments) extends
       val executorCores = _sparkConf.get(EXECUTOR_CORES)
       val executorGPUs = sparkConf.get(EXECUTOR_GPUS)
       val dummyRunner = new ExecutorRunnable(None, yarnConf, _sparkConf, driverUrl, "<executorId>",
-        "<hostname>", executorMemory, executorCores, executorGPUs, appId, securityMgr, localResources)
+        "<hostname>", executorMemory, executorCores, executorGPUs,
+        appId, securityMgr, localResources)
       dummyRunner.launchContextDebugInfo()
     }
 

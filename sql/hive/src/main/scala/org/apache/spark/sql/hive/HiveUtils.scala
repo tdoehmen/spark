@@ -58,11 +58,12 @@ private[spark] object HiveUtils extends Logging {
   }
 
   /** The version of hive used internally by Spark SQL. */
-  val builtinHiveVersion: String = "1.2.1"
+  val builtinHiveVersion: String = "3.0.1"
 
   val HIVE_METASTORE_VERSION = buildConf("spark.sql.hive.metastore.version")
     .doc("Version of the Hive metastore. Available options are " +
-        s"<code>0.12.0</code> through <code>2.3.3</code>.")
+        "<code>0.12.0</code> through <code>2.3.4</code> and " +
+        "<code>3.1.0</code> through <code>3.1.1</code>.")
     .stringConf
     .createWithDefault(builtinHiveVersion)
 
@@ -201,8 +202,6 @@ private[spark] object HiveUtils extends Logging {
       ConfVars.METASTORE_AGGREGATE_STATS_CACHE_MAX_READER_WAIT -> TimeUnit.MILLISECONDS,
       ConfVars.HIVES_AUTO_PROGRESS_TIMEOUT -> TimeUnit.SECONDS,
       ConfVars.HIVE_LOG_INCREMENTAL_PLAN_PROGRESS_INTERVAL -> TimeUnit.MILLISECONDS,
-      ConfVars.HIVE_STATS_JDBC_TIMEOUT -> TimeUnit.SECONDS,
-      ConfVars.HIVE_STATS_RETRIES_WAIT -> TimeUnit.MILLISECONDS,
       ConfVars.HIVE_LOCK_SLEEP_BETWEEN_RETRIES -> TimeUnit.SECONDS,
       ConfVars.HIVE_ZOOKEEPER_SESSION_TIMEOUT -> TimeUnit.MILLISECONDS,
       ConfVars.HIVE_ZOOKEEPER_CONNECTION_BASESLEEPTIME -> TimeUnit.MILLISECONDS,
@@ -228,7 +227,7 @@ private[spark] object HiveUtils extends Logging {
       ConfVars.SPARK_JOB_MONITOR_TIMEOUT -> TimeUnit.SECONDS,
       ConfVars.SPARK_RPC_CLIENT_CONNECT_TIMEOUT -> TimeUnit.MILLISECONDS,
       ConfVars.SPARK_RPC_CLIENT_HANDSHAKE_TIMEOUT -> TimeUnit.MILLISECONDS
-    ).map { case (confVar, unit) =>
+    ).map { case (confVar: ConfVars, unit: TimeUnit) =>
       confVar.varname -> HiveConf.getTimeVar(hadoopConf, confVar, unit).toString
     }.toMap
   }

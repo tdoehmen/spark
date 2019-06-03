@@ -1371,8 +1371,9 @@ class HiveDDLSuite
       "maxFileSize",
       "minFileSize"
     )
-    assert(targetTable.properties.filterKeys(!metastoreGeneratedProperties.contains(_)).isEmpty,
-      "the table properties of source tables should not be copied in the created table")
+    // Fabio: in the new Hive create table like also copies the properties
+    //assert(targetTable.properties.filterKeys(!metastoreGeneratedProperties.contains(_)).isEmpty,
+    //  "the table properties of source tables should not be copied in the created table")
 
     if (DDLUtils.isDatasourceTable(sourceTable) ||
         sourceTable.tableType == CatalogTableType.VIEW) {
@@ -1420,7 +1421,8 @@ class HiveDDLSuite
       sql(s"SELECT * FROM ${targetTable.identifier}"))
   }
 
-  test("create table with the same name as an index table") {
+  // Fabio: Hive 3 doesn't support indexes
+  ignore("create table with the same name as an index table") {
     val tabName = "tab1"
     val indexName = tabName + "_index"
     withTable(tabName) {
@@ -1468,7 +1470,7 @@ class HiveDDLSuite
         spark.sharedState.externalCatalog.unwrapped.asInstanceOf[HiveExternalCatalog].client
       client.runSqlHive(
         s"""
-           |CREATE Table $tabName(col1 int, col2 int)
+           |CREATE TABLE $tabName(col1 int, col2 int)
            |PARTITIONED BY (part1 string, part2 string)
            |SKEWED BY (col1) ON (3, 4) STORED AS DIRECTORIES
          """.stripMargin)

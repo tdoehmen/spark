@@ -98,9 +98,9 @@ class HiveOrcSourceSuite extends OrcSuite with TestHiveSingleton {
     val location = Utils.createTempDir()
     val uri = location.toURI
     try {
-      hiveClient.runSqlHive("USE default")
+      hiveClient.runSqlHive(s"USE default")
       hiveClient.runSqlHive(
-        """
+       s"""
           |CREATE EXTERNAL TABLE hive_orc(
           |  a STRING,
           |  b CHAR(10),
@@ -111,7 +111,7 @@ class HiveOrcSourceSuite extends OrcSuite with TestHiveSingleton {
       hiveClient.runSqlHive(
         s"ALTER TABLE hive_orc SET LOCATION '$uri'")
       hiveClient.runSqlHive(
-        """
+        s"""
           |INSERT INTO TABLE hive_orc
           |SELECT 'a', 'b', 'c', ARRAY(CAST('d' AS CHAR(3)))
           |FROM (SELECT 1) t""".stripMargin)

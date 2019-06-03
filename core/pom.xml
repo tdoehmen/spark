@@ -21,7 +21,7 @@
   <parent>
     <groupId>org.apache.spark</groupId>
     <artifactId>spark-parent_2.11</artifactId>
-    <version>2.4.0</version>
+    <version>2.4.0.1</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -394,7 +394,7 @@
     </dependency>
     <dependency>
       <groupId>${hive.group}</groupId>
-      <artifactId>hive-metastore</artifactId>
+      <artifactId>hive-standalone-metastore</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -406,6 +406,10 @@
       <groupId>org.apache.thrift</groupId>
       <artifactId>libfb303</artifactId>
       <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.calcite</groupId>
+      <artifactId>calcite-core</artifactId>
     </dependency>
 
   </dependencies>

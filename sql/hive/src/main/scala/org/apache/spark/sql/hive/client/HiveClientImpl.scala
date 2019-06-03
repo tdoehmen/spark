@@ -105,6 +105,8 @@ private[hive] class HiveClientImpl(
     case hive.v2_1 => new Shim_v2_1()
     case hive.v2_2 => new Shim_v2_2()
     case hive.v2_3 => new Shim_v2_3()
+    case hive.v3_0 => new Shim_v3_1()
+    case hive.v3_1 => new Shim_v3_1()
   }
 
   // Create an internal session state for this HiveClientImpl.
@@ -149,7 +151,7 @@ private[hive] class HiveClientImpl(
       s"(version ${version.fullVersion}) is ${conf.getVar(ConfVars.METASTOREWAREHOUSE)}")
 
   private def newState(): SessionState = {
-    val hiveConf = new HiveConf(classOf[SessionState])
+    val hiveConf = new HiveConf(classOf[SessionState], true)
     // HiveConf is a Hadoop Configuration, which has a field of classLoader and
     // the initial value will be the current thread's context class loader
     // (i.e. initClassLoader at here).
@@ -433,8 +435,6 @@ private[hive] class HiveClientImpl(
           case HiveTableType.EXTERNAL_TABLE => CatalogTableType.EXTERNAL
           case HiveTableType.MANAGED_TABLE => CatalogTableType.MANAGED
           case HiveTableType.VIRTUAL_VIEW => CatalogTableType.VIEW
-          case HiveTableType.INDEX_TABLE =>
-            throw new AnalysisException("Hive index table is not supported.")
         },
         schema = schema,
         partitionColumnNames = partCols.map(_.name),
@@ -718,14 +718,12 @@ private[hive] class HiveClientImpl(
           // Throw an exception if there is an error in query processing.
           if (response.getResponseCode != 0) {
             driver.close()
-            CommandProcessorFactory.clean(conf)
             throw new QueryExecutionException(response.getErrorMessage)
           }
           driver.setMaxRows(maxRows)
 
           val results = shim.getDriverResults(driver)
           driver.close()
-          CommandProcessorFactory.clean(conf)
           results
 
         case _ =>
@@ -848,13 +846,7 @@ private[hive] class HiveClientImpl(
   def reset(): Unit = withHiveState {
     client.getAllTables("default").asScala.foreach { t =>
       logDebug(s"Deleting table $t")
-      val table = client.getTable("default", t)
-      client.getIndexes("default", t, 255).asScala.foreach { index =>
-        shim.dropIndex(client, "default", t, index.getIndexName)
-      }
-      if (!table.isIndexTable) {
-        client.dropTable("default", t)
-      }
+      client.dropTable("default", t)
     }
     client.getAllDatabases.asScala.filterNot(_ == "default").foreach { db =>
       logDebug(s"Dropping Database: $db")

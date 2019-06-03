@@ -45,6 +45,30 @@
   <description>maximum number of reducers</description>
 </property>
 -->
+<property>
+  <name>hops.metadata.consistent</name>
+  <value>false</value>
+</property>
+
+<property>
+  <name>datanucleus.schema.autoCreateSchema</name>
+  <value>true</value>
+</property>
+
+<property>
+  <name>datanucleus.schema.autoCreateTables</name>
+  <value>true</value>
+</property>
+
+<property>
+  <name>datanucleus.schema.autoCreateColumns</name>
+  <value>true</value>
+</property>
+
+<property>
+  <name>hive.metastore.schema.verification</name>
+  <value>false</value>
+</property>
 
 <property>
   <name>hive.exec.scratchdir</name>
@@ -64,12 +88,6 @@
 </property>
 
 <property>
-  <name>hive.stats.dbconnectionstring</name>
-  <value>jdbc:derby:;databaseName=${test.tmp.dir}/TempStatsStore;create=true</value>
-</property>
-
-
-<property>
   <name>javax.jdo.option.ConnectionDriverName</name>
   <value>org.apache.derby.jdbc.EmbeddedDriver</value>
 </property>
@@ -85,23 +103,14 @@
 </property>
 
 <property>
-  <!--  this should eventually be deprecated since the metastore should supply this -->
-  <name>hive.metastore.warehouse.dir</name>
-  <value>${test.warehouse.dir}</value>
+  <name>test.log.dir</name>
+  <value>${test.tmp.dir}/log/</value>
   <description></description>
 </property>
 
 <property>
-  <name>hive.metastore.metadb.dir</name>
-  <value>file://${test.tmp.dir}/metadb/</value>
-  <description>
-  Required by metastore server or if the uris argument below is not supplied
-  </description>
-</property>
-
-<property>
-  <name>test.log.dir</name>
-  <value>${test.tmp.dir}/log/</value>
+  <name>hive.metastore.warehouse.dir</name>
+  <value>${test.tmp.dir}/warehouse/</value>
   <description></description>
 </property>
 
@@ -113,7 +122,7 @@
 
 <property>
   <name>hive.jar.path</name>
-  <value>${maven.local.repository}/org/apache/hive/hive-exec/${hive.version}/hive-exec-${hive.version}.jar</value>
+  <value>${maven.local.repository}/io/hops/hive/hive-exec/${hive.version}/hive-exec-${hive.version}.jar</value>
   <description></description>
 </property>
 

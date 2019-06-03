@@ -123,7 +123,7 @@ abstract class OrcSuite extends OrcTest with BeforeAndAfterAll {
       (1 to 10).map(i => Row(i, s"part-$i")))
 
     checkAnswer(
-      sql("SELECT * FROM normal_orc_source where intField > 5"),
+      sql("SELECT * FROM normal_orc_source where intField > 5.0"),
       (6 to 10).map(i => Row(i, s"part-$i")))
 
     checkAnswer(
@@ -139,7 +139,7 @@ abstract class OrcSuite extends OrcTest with BeforeAndAfterAll {
       (1 to 10).map(i => Row(i, s"part-$i")))
 
     checkAnswer(
-      sql("SELECT * FROM normal_orc_source WHERE intField > 5"),
+      sql("SELECT * FROM normal_orc_source WHERE intField > 5.0"),
       (6 to 10).map(i => Row(i, s"part-$i")))
 
     checkAnswer(

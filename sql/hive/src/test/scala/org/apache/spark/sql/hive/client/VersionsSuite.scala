@@ -111,8 +111,10 @@ class VersionsSuite extends SparkFunSuite with Logging {
     assert(getNestedMessages(e) contains "Unknown column 'A0.OWNER_NAME' in 'field list'")
   }
 
-  private val versions =
-    Seq("0.12", "0.13", "0.14", "1.0", "1.1", "1.2", "2.0", "2.1", "2.2", "2.3")
+  // Hopsworks related code, we test only with 2.3 client as it's what applies to us
+  //private val versions =
+  //  Seq("0.12", "0.13", "0.14", "1.0", "1.1", "1.2", "2.0", "2.1", "2.2", "2.3")
+  private val versions = Seq("3.0")
 
   private var client: HiveClient = null
 
@@ -127,9 +129,19 @@ class VersionsSuite extends SparkFunSuite with Logging {
       // Hive changed the default of datanucleus.schema.autoCreateAll from true to false and
       // hive.metastore.schema.verification from false to true since 2.0
       // For details, see the JIRA HIVE-6113 and HIVE-12463
-      if (version == "2.0" || version == "2.1" || version == "2.2" || version == "2.3") {
-        hadoopConf.set("datanucleus.schema.autoCreateAll", "true")
+
+      if (version == "2.0" || version == "2.1" || version == "2.2" || version == "2.3" ||
+          version == "3.0") {
+        // Fabio: disable metadata consistency for unit tests.
+        hadoopConf.set("hops.metadata.consistent", "false")
+        hadoopConf.set("datanucleus.schema.autoCreateSchema", "true")
+        hadoopConf.set("datanucleus.schema.autoCreateTables", "true")
+        hadoopConf.set("datanucleus.schema.autoCreateColumns", "true")
         hadoopConf.set("hive.metastore.schema.verification", "false")
+      }
+      // Since Hive 3.0, HIVE-19310 skipped `ensureDbInit` if `hive.in.test=false`.
+      if (version == "3.1" || version == "3.0") {
+        hadoopConf.set("hive.in.test", "true")
       }
       client = buildClient(version, hadoopConf, HiveUtils.formatTimeVarsForHiveClient(hadoopConf))
       if (versionSpark != null) versionSpark.reset()
@@ -298,7 +310,7 @@ class VersionsSuite extends SparkFunSuite with Logging {
     }
 
     test(s"$version: dropTable") {
-      val versionsWithoutPurge = versions.takeWhile(_ != "0.14")
+      val versionsWithoutPurge = versions.takeWhile(_ != "3.0")
       // First try with the purge option set. This should fail if the version is < 0.14, in which
       // case we check the version and try without it.
       try {
@@ -327,7 +339,20 @@ class VersionsSuite extends SparkFunSuite with Logging {
       properties = Map.empty)
 
     test(s"$version: sql create partitioned table") {
-      client.runSqlHive("CREATE TABLE src_part (value INT) PARTITIONED BY (key1 INT, key2 INT)")
+      val table = CatalogTable(
+        identifier = TableIdentifier("src_part", Some("default")),
+        tableType = CatalogTableType.MANAGED,
+        schema = new StructType().add("value", "int").add("key1", "int").add("key2", "int"),
+        partitionColumnNames = Seq("key1", "key2"),
+        storage = CatalogStorageFormat(
+          locationUri = None,
+          inputFormat = Some(classOf[TextInputFormat].getName),
+          outputFormat = Some(classOf[HiveIgnoreKeyTextOutputFormat[_, _]].getName),
+          serde = Some(classOf[LazySimpleSerDe].getName()),
+          compressed = false,
+          properties = Map.empty
+        ))
+      client.createTable(table, ignoreIfExists = false)
     }
 
     val testPartitionCount = 2
@@ -413,7 +438,8 @@ class VersionsSuite extends SparkFunSuite with Logging {
         numDP = 1)
     }
 
-    test(s"$version: renamePartitions") {
+    // Fabio: we don't allow renames in HopsHive
+    ignore(s"$version: renamePartitions") {
       val oldSpec = Map("key1" -> "1", "key2" -> "1")
       val newSpec = Map("key1" -> "1", "key2" -> "3")
       client.renamePartitions("default", "src_part", Seq(oldSpec), Seq(newSpec))
@@ -440,7 +466,7 @@ class VersionsSuite extends SparkFunSuite with Logging {
 
     test(s"$version: dropPartitions") {
       val spec = Map("key1" -> "1", "key2" -> "3")
-      val versionsWithoutPurge = versions.takeWhile(_ != "1.2")
+      val versionsWithoutPurge = versions.takeWhile(_ != "3.0")
       // Similar to dropTable; try with purge set, and if it fails, make sure we're running
       // with a version that is older than the minimum (1.2 in this case).
       try {
@@ -565,9 +591,12 @@ class VersionsSuite extends SparkFunSuite with Logging {
     }
 
     test(s"$version: sql create index and reset") {
-      client.runSqlHive("CREATE TABLE indexed_table (key INT)")
-      client.runSqlHive("CREATE INDEX index_1 ON TABLE indexed_table(key) " +
-        "as 'COMPACT' WITH DEFERRED REBUILD")
+      // HIVE-18448 Since Hive 3.0, INDEX is not supported.
+      if (version != "3.1") {
+        client.runSqlHive("CREATE TABLE indexed_table (key INT)")
+        client.runSqlHive("CREATE INDEX index_1 ON TABLE indexed_table(key) " +
+          "as 'COMPACT' WITH DEFERRED REBUILD")
+      }
     }
 
     ///////////////////////////////////////////////////////////////////////////

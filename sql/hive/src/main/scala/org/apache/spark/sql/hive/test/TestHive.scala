@@ -19,6 +19,7 @@ package org.apache.spark.sql.hive.test
 
 import java.io.File
 import java.net.URI
+import java.sql.{Driver, DriverManager}
 import java.util.{Set => JavaSet}
 
 import scala.collection.JavaConverters._
@@ -28,6 +29,7 @@ import scala.language.implicitConversions
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars
+import org.apache.hadoop.hive.metastore.conf.MetastoreConf
 import org.apache.hadoop.hive.ql.exec.FunctionRegistry
 import org.apache.hadoop.hive.serde2.`lazy`.LazySimpleSerDe
 
@@ -188,8 +190,15 @@ private[hive] class TestHiveSparkSession(
   { // set the metastore temporary configuration
     val metastoreTempConf = HiveUtils.newTemporaryConfiguration(useInMemoryDerby = false) ++ Map(
       ConfVars.METASTORE_INTEGER_JDO_PUSHDOWN.varname -> "true",
+
+      // Enable schema creation for testing
+      MetastoreConf.ConfVars.AUTO_CREATE_COLUMNS.getVarname -> "true",
+      MetastoreConf.ConfVars.AUTO_CREATE_TABLES.getVarname -> "true",
+      MetastoreConf.ConfVars.AUTO_CREATE_SCHEMA.getVarname -> "true",
+
       // scratch directory used by Hive's metastore client
       ConfVars.SCRATCHDIR.varname -> TestHiveContext.makeScratchDir().toURI.toString,
+      ConfVars.METASTOREWAREHOUSE.varname -> TestHiveContext.makeWarehouseDir().toURI.toString,
       ConfVars.METASTORE_CLIENT_CONNECT_RETRY_DELAY.varname -> "1") ++
       // After session cloning, the JDBC connect string for a JDBC metastore should not be changed.
       existingSharedState.map { state =>
@@ -201,6 +210,11 @@ private[hive] class TestHiveSparkSession(
     metastoreTempConf.foreach { case (k, v) =>
       sc.hadoopConfiguration.set(k, v)
     }
+
+    // Load the Metastore Driver
+    val metastoreDriver = Utils.classForName(sc.hadoopConfiguration.get(
+      MetastoreConf.ConfVars.CONNECTION_DRIVER.getVarname)).newInstance().asInstanceOf[Driver]
+    DriverManager.registerDriver(metastoreDriver)
   }
 
   assume(sc.conf.get(CATALOG_IMPLEMENTATION) == "hive")

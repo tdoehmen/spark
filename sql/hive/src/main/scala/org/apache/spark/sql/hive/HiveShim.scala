@@ -28,7 +28,7 @@ import com.google.common.base.Objects
 import org.apache.avro.Schema
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
-import org.apache.hadoop.hive.ql.exec.{UDF, Utilities}
+import org.apache.hadoop.hive.ql.exec.{SerializationUtilities, UDF, Utilities}
 import org.apache.hadoop.hive.ql.plan.{FileSinkDesc, TableDesc}
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFMacro
 import org.apache.hadoop.hive.serde2.ColumnProjectionUtils
@@ -146,36 +146,6 @@ private[hive] object HiveShim {
       case _ => false
     }
 
-    @transient
-    def deserializeObjectByKryo[T: ClassTag](
-        kryo: Kryo,
-        in: InputStream,
-        clazz: Class[_]): T = {
-      val inp = new Input(in)
-      val t: T = kryo.readObject(inp, clazz).asInstanceOf[T]
-      inp.close()
-      t
-    }
-
-    @transient
-    def serializeObjectByKryo(
-        kryo: Kryo,
-        plan: Object,
-        out: OutputStream) {
-      val output: Output = new Output(out)
-      kryo.writeObject(output, plan)
-      output.close()
-    }
-
-    def deserializePlan[UDFType](is: java.io.InputStream, clazz: Class[_]): UDFType = {
-      deserializeObjectByKryo(Utilities.runtimeSerializationKryo.get(), is, clazz)
-        .asInstanceOf[UDFType]
-    }
-
-    def serializePlan(function: AnyRef, out: java.io.OutputStream): Unit = {
-      serializeObjectByKryo(Utilities.runtimeSerializationKryo.get(), function, out)
-    }
-
     def writeExternal(out: java.io.ObjectOutput) {
       // output the function name
       out.writeUTF(functionClassName)
@@ -186,7 +156,7 @@ private[hive] object HiveShim {
         // Some of the UDF are serializable, but some others are not
         // Hive Utilities can handle both cases
         val baos = new java.io.ByteArrayOutputStream()
-        serializePlan(instance, baos)
+        SerializationUtilities.serializePlan(instance, baos)
         val functionInBytes = baos.toByteArray
 
         // output the function bytes
@@ -207,8 +177,9 @@ private[hive] object HiveShim {
         in.readFully(functionInBytes)
 
         // deserialize the function object via Hive Utilities
-        instance = deserializePlan[AnyRef](new java.io.ByteArrayInputStream(functionInBytes),
-          Utils.getContextOrSparkClassLoader.loadClass(functionClassName))
+        instance = SerializationUtilities.deserializePlan(new
+            java.io.ByteArrayInputStream(functionInBytes),
+          Utils.getContextOrSparkClassLoader.loadClass(functionClassName)).asInstanceOf[AnyRef]
       }
     }
 
