@@ -142,7 +142,7 @@ class YarnSparkHadoopUtilSuite extends SparkFunSuite with Matchers with Logging
 
   }
 
-  test("SPARK-24149: retrieve all namenodes from HDFS") {
+  ignore("SPARK-24149: retrieve all namenodes from HDFS") {
     val sparkConf = new SparkConf()
     val basicFederationConf = new Configuration()
     basicFederationConf.set("fs.defaultFS", "hdfs://localhost:8020")

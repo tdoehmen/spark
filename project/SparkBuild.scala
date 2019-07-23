@@ -226,6 +226,7 @@ object SparkBuild extends PomBuild {
       Resolver.mavenLocal,
       Resolver.file("local", file(Path.userHome.absolutePath + "/.ivy2/local"))(Resolver.ivyStylePatterns)
     ),
+    resolvers += "Hops Repo" at "https://bbc1.sics.se/archiva/repository/Hops/",
     externalResolvers := resolvers.value,
     otherResolvers := SbtPomKeys.mvnLocalRepository(dotM2 => Seq(Resolver.file("dotM2", dotM2))).value,
     publishLocalConfiguration in MavenCompile :=
