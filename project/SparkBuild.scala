@@ -226,6 +226,7 @@ object SparkBuild extends PomBuild {
       Resolver.mavenLocal,
       Resolver.file("local", file(Path.userHome.absolutePath + "/.ivy2/local"))(Resolver.ivyStylePatterns)
     ),
+    resolvers += "Hops Repo" at "https://bbc1.sics.se/archiva/repository/Hops/",
     externalResolvers := resolvers.value,
     otherResolvers := SbtPomKeys.mvnLocalRepository(dotM2 => Seq(Resolver.file("dotM2", dotM2))).value,
     publishLocalConfiguration in MavenCompile :=
@@ -676,6 +677,7 @@ object Unidoc {
       .map(_.filterNot(_.getCanonicalPath.contains("org/apache/spark/unsafe")))
       .map(_.filterNot(_.getCanonicalPath.contains("python")))
       .map(_.filterNot(_.getCanonicalPath.contains("org/apache/spark/util/collection")))
+      .map(_.filterNot(_.getCanonicalPath.contains("org/apache/spark/util/kvstore")))
       .map(_.filterNot(_.getCanonicalPath.contains("org/apache/spark/sql/catalyst")))
       .map(_.filterNot(_.getCanonicalPath.contains("org/apache/spark/sql/execution")))
       .map(_.filterNot(_.getCanonicalPath.contains("org/apache/spark/sql/internal")))
