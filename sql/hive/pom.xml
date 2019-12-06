@@ -104,6 +104,10 @@
           <groupId>com.twitter</groupId>
           <artifactId>parquet-hadoop-bundle</artifactId>
         </exclusion>
+        <exclusion>
+          <groupId>io.hops</groupId>
+          <artifactId>hadoop-yarn-registry</artifactId>
+        </exclusion>
       </exclusions>
 <!--
       <classifier>core</classifier>
