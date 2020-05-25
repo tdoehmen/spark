@@ -143,9 +143,10 @@ private[yarn] class YarnAllocator(
   // Number of gpus per executor.
   protected val executorGPUs = sparkConf.get(EXECUTOR_GPUS)
   // Resource capability requested for each executors
+  val gpuRes = Map[String, java.lang.Long]("yarn.io/gpu" -> executorGPUs).asJava
   private[yarn] val resource = Resource.newInstance(
     executorMemory + memoryOverhead + pysparkWorkerMemory,
-    executorCores, executorGPUs)
+    executorCores, gpuRes)
 
   protected val isTensorFlowApplication = sparkConf.get(IS_TENSORFLOW)
 
@@ -193,7 +194,7 @@ private[yarn] class YarnAllocator(
   private def getPendingAtLocation(location: String): Seq[ContainerRequest] = {
     // Either non-TensorFlow executor or TensorFlow PS, neither use GPUs
     val nonGPUExecutorResource = Resource.newInstance(
-      resource.getMemory, resource.getVirtualCores, 0)
+      resource.getMemory, resource.getVirtualCores)
     var containerRequests = amClient.getMatchingRequests(
       RM_REQUEST_PRIORITY, location, nonGPUExecutorResource).asScala
     if(isTensorFlowApplication) {
@@ -318,7 +319,7 @@ private[yarn] class YarnAllocator(
       logInfo(s"Will request $missing executor container(s), each with " +
         s"${resource.getVirtualCores} core(s) and " +
         s"${resource.getMemory} MB memory (including $memoryOverhead MB of overhead) and " +
-        s"${resource.getGPUs} GPU(s)")
+        s"${resource.getResourceValue("yarn.io/gpu")} GPU(s)")
 
       // cancel "stale" requests for locations that are no longer needed
       staleRequests.foreach { stale =>
@@ -416,7 +417,7 @@ private[yarn] class YarnAllocator(
     // The first NUM_TENSORFLOW_PS will be containers allocated for parameter server
     else if (isTensorFlowApplication && numTensorFlowParamServers > 0) {
       numTensorFlowParamServers -= 1
-      val psResource = Resource.newInstance(resource.getMemory, resource.getVirtualCores, 0)
+      val psResource = Resource.newInstance(resource.getMemory, resource.getVirtualCores)
       new ContainerRequest(psResource, nodes, racks, RM_REQUEST_PRIORITY,
         true, labelExpression.orNull)
     }
@@ -524,8 +525,10 @@ private[yarn] class YarnAllocator(
     // request; for example, capacity scheduler + DefaultResourceCalculator. So match on requested
     // memory, but use the asked vcore count for matching, effectively disabling matching on vcore
     // count.
+    val gpuRes = Map[String, java.lang.Long]("yarn.io/gpu" ->
+      allocatedContainer.getResource.getResourceValue("yarn.io/gpu")).asJava
     val matchingResource = Resource.newInstance(allocatedContainer.getResource.getMemory,
-          resource.getVirtualCores, allocatedContainer.getResource.getGPUs)
+          resource.getVirtualCores, gpuRes)
     val matchingRequests = amClient.getMatchingRequests(allocatedContainer.getPriority, location,
       matchingResource)
 

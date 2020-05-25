@@ -47,7 +47,8 @@ class YarnTensorFlowSuite extends SparkFunSuite with Matchers with BeforeAndAfte
 
   // Resource returned by YARN.  YARN can give larger containers than requested, so give 6 cores
   // instead of the 5 requested and 3 GB instead of the 2 requested.
-  val containerResource = Resource.newInstance(3072, 6, 1)
+  val gpuRes = Map[String, java.lang.Long]("yarn.io/gpu" -> 1).asJava
+  val containerResource = Resource.newInstance(3072, 6, gpuRes)
 
   var rmClient: AMRMClient[ContainerRequest] = _
 
@@ -113,7 +114,7 @@ class YarnTensorFlowSuite extends SparkFunSuite with Matchers with BeforeAndAfte
     val containerId = ContainerId.newInstance(appAttemptId, containerNum)
     containerNum += 1
     val nodeId = NodeId.newInstance(host, 1000)
-    val psRes = Resource.newInstance(3072, 6, 0)
+    val psRes = Resource.newInstance(3072, 6)
     Container.newInstance(containerId, nodeId, "", psRes, RM_REQUEST_PRIORITY, null)
   }
 
