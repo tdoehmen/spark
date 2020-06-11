@@ -121,7 +121,7 @@ private[hive] object IsolatedClientLoader extends Logging {
       SparkSubmitUtils.resolveMavenCoordinates(
         hiveArtifacts.mkString(","),
         SparkSubmitUtils.buildIvySettings(
-          Some("https://bbc1.sics.se/archiva/repository/Hops/," +
+          Some("https://archiva.hops.works/repository/Hops/," +
             "http://www.datanucleus.org/downloads/maven2"),
           ivyPath),
         exclusions = version.exclusions)
