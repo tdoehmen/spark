@@ -23,12 +23,11 @@ import java.text.SimpleDateFormat
 import java.util.{Date, Locale, Random}
 
 import scala.util.control.NonFatal
-
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.hive.common.FileUtils
+import org.apache.hadoop.hive.metastore.conf.MetastoreConf
 import org.apache.hadoop.hive.ql.exec.TaskRunner
-
 import org.apache.spark.internal.io.FileCommitProtocol
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.catalyst.catalog.CatalogTypes.TablePartitionSpec
@@ -167,8 +166,7 @@ private[hive] trait SaveAsHiveFile extends DataWritingCommand {
     try {
       val fs: FileSystem = dirPath.getFileSystem(hadoopConf)
       dirPath = new Path(fs.makeQualified(dirPath).toString())
-
-      if (!FileUtils.mkdir(fs, dirPath, hadoopConf)) {
+      if (!FileUtils.mkdir(fs, dirPath, false, hadoopConf)) {
         throw new IllegalStateException("Cannot create staging directory: " + dirPath.toString)
       }
       createdTempDir = Some(dirPath)
@@ -240,7 +238,7 @@ private[hive] trait SaveAsHiveFile extends DataWritingCommand {
         new Path(stagingPathName + "_" + executionId + "-" + TaskRunner.getTaskRunnerID))
     logDebug("Created staging dir = " + dir + " for path = " + inputPath)
     try {
-      if (!FileUtils.mkdir(fs, dir, hadoopConf)) {
+      if (!FileUtils.mkdir(fs, dir, false, hadoopConf)) {
         throw new IllegalStateException("Cannot create staging directory  '" + dir.toString + "'")
       }
       createdTempDir = Some(dir)
