@@ -223,16 +223,40 @@ class AvroSerializer(rootCatalystType: DataType, rootAvroType: Schema, nullable:
       result
   }
 
+  /**
+   * Resolve a possibly nullable Avro Type.
+   *
+   * An Avro type is nullable when it is a [[UNION]] of two types: one null type and another
+   * non-null type. This method will check the nullability of the input Avro type and return the
+   * non-null type within when it is nullable. Otherwise it will return the input Avro type
+   * unchanged. It will throw an [[UnsupportedAvroTypeException]] when the input Avro type is an
+   * unsupported nullable type.
+   *
+   * It will also log a warning message if the nullability for Avro and catalyst types are
+   * different.
+   */
   private def resolveNullableType(avroType: Schema, nullable: Boolean): Schema = {
-    if (nullable && avroType.getType != NULL) {
-      // avro uses union to represent nullable type.
+    val (avroNullable, resolvedAvroType) = resolveAvroType(avroType)
+    resolvedAvroType
+  }
+
+  /**
+   * Check the nullability of the input Avro type and resolve it when it is nullable. The first
+   * return value is a [[Boolean]] indicating if the input Avro type is nullable. The second
+   * return value is the possibly resolved type.
+   */
+  private def resolveAvroType(avroType: Schema): (Boolean, Schema) = {
+    if (avroType.getType == Type.UNION) {
       val fields = avroType.getTypes.asScala
-      assert(fields.length == 2)
       val actualType = fields.filter(_.getType != Type.NULL)
-      assert(actualType.length == 1)
-      actualType.head
+      if (fields.length != 2 || actualType.length != 1) {
+        throw new UnsupportedAvroTypeException(
+          s"Unsupported Avro UNION type $avroType: Only UNION of a null type and a non-null " +
+            "type is supported")
+      }
+      (true, actualType.head)
     } else {
-      avroType
+      (false, avroType)
     }
   }
 }
