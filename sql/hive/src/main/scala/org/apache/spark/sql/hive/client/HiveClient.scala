@@ -17,8 +17,6 @@
 
 package org.apache.spark.sql.hive.client
 
-import java.io.PrintStream
-
 import org.apache.hadoop.hive.common.io.SessionStream
 
 import org.apache.spark.sql.catalyst.analysis._
