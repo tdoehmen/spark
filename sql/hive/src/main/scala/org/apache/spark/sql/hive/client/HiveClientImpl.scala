@@ -17,7 +17,7 @@
 
 package org.apache.spark.sql.hive.client
 
-import java.io.{File, PrintStream}
+import java.io.{File}
 import java.lang.{Iterable => JIterable}
 import java.lang.reflect.InvocationTargetException
 import java.nio.charset.StandardCharsets.UTF_8
@@ -30,6 +30,7 @@ import scala.collection.mutable.ArrayBuffer
 
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hive.common.StatsSetupConst
+import org.apache.hadoop.hive.common.io.SessionStream
 import org.apache.hadoop.hive.conf.HiveConf
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars
 import org.apache.hadoop.hive.metastore.{IMetaStoreClient, TableType => HiveTableType}
@@ -62,7 +63,6 @@ import org.apache.spark.sql.hive.HiveExternalCatalog.{DATASOURCE_SCHEMA, DATASOU
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types._
 import org.apache.spark.util.{CircularBuffer, Utils}
-
 /**
  * A class that wraps the HiveClient and converts its responses to externally visible classes.
  * Note that this class is typically loaded with an internal classloader for each instantiation,
@@ -172,8 +172,8 @@ private[hive] class HiveClientImpl(
     // got changed. We reset it to clientLoader.ClassLoader here.
     state.getConf.setClassLoader(clientLoader.classLoader)
     SessionState.start(state)
-    state.out = new PrintStream(outputBuffer, true, UTF_8.name())
-    state.err = new PrintStream(outputBuffer, true, UTF_8.name())
+    state.out = new SessionStream(outputBuffer, true, UTF_8.name())
+    state.err = new SessionStream(outputBuffer, true, UTF_8.name())
     state
   }
 
@@ -301,15 +301,15 @@ private[hive] class HiveClientImpl(
     ret
   }
 
-  def setOut(stream: PrintStream): Unit = withHiveState {
+  def setOut(stream: SessionStream): Unit = withHiveState {
     state.out = stream
   }
 
-  def setInfo(stream: PrintStream): Unit = withHiveState {
+  def setInfo(stream: SessionStream): Unit = withHiveState {
     state.info = stream
   }
 
-  def setError(stream: PrintStream): Unit = withHiveState {
+  def setError(stream: SessionStream): Unit = withHiveState {
     state.err = stream
   }
 
