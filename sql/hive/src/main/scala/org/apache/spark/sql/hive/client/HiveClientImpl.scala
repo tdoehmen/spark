@@ -172,8 +172,8 @@ private[hive] class HiveClientImpl(
     // got changed. We reset it to clientLoader.ClassLoader here.
     state.getConf.setClassLoader(clientLoader.classLoader)
     SessionState.start(state)
-    state.out = new PrintStream(outputBuffer, true, UTF_8.name())
-    state.err = new PrintStream(outputBuffer, true, UTF_8.name())
+    state.out = new SessionStream(outputBuffer, true, UTF_8.name())
+    state.err = new SessionStream(outputBuffer, true, UTF_8.name())
     state
   }
 
