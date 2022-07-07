@@ -18,8 +18,8 @@
 package org.apache.spark.sql.execution.datasources
 
 import java.io.{DataInput, DataOutput, IOException}
-import java.sql.Date
 
+import org.apache.hadoop.hive.common.`type`.Date
 import org.apache.hadoop.hive.serde2.io.DateWritableV2
 import org.apache.hadoop.io.WritableUtils
 
@@ -55,7 +55,7 @@ class DaysWritable(
 
   override def getDays: Int = julianDays
   override def get: Date = {
-    new Date(DateWritableV2.daysToMillis(julianDays))
+    Date.ofEpochMilli(DateWritableV2.daysToMillis(julianDays))
   }
 
   override def set(d: Int): Unit = {
