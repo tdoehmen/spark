@@ -38,182 +38,145 @@ import org.apache.spark.unsafe.types.UTF8String
 /**
  * 1. The Underlying data type in catalyst and in Hive
  * In catalyst:
- * Primitive  =>
- * UTF8String
- * int / scala.Int
- * boolean / scala.Boolean
- * float / scala.Float
- * double / scala.Double
- * long / scala.Long
- * short / scala.Short
- * byte / scala.Byte
- * [[org.apache.spark.sql.types.Decimal]]
- * Array[Byte]
- * java.sql.Date
- * java.sql.Timestamp
- * Complex Types =>
- * Map: `MapData`
- * List: `ArrayData`
- * Struct: [[org.apache.spark.sql.catalyst.InternalRow]]
- * Union: NOT SUPPORTED YET
- * The Complex types plays as a container, which can hold arbitrary data types.
+ *  Primitive  =>
+ *     UTF8String
+ *     int / scala.Int
+ *     boolean / scala.Boolean
+ *     float / scala.Float
+ *     double / scala.Double
+ *     long / scala.Long
+ *     short / scala.Short
+ *     byte / scala.Byte
+ *     [[org.apache.spark.sql.types.Decimal]]
+ *     Array[Byte]
+ *     java.sql.Date
+ *     java.sql.Timestamp
+ *  Complex Types =>
+ *    Map: `MapData`
+ *    List: `ArrayData`
+ *    Struct: [[org.apache.spark.sql.catalyst.InternalRow]]
+ *    Union: NOT SUPPORTED YET
+ *  The Complex types plays as a container, which can hold arbitrary data types.
  *
  * In Hive, the native data types are various, in UDF/UDAF/UDTF, and associated with
  * Object Inspectors, in Hive expression evaluation framework, the underlying data are
  * Primitive Type
- * Java Boxed Primitives:
- * org.apache.hadoop.hive.common.type.HiveVarchar
- * org.apache.hadoop.hive.common.type.HiveChar
- * java.lang.String
- * java.lang.Integer
- * java.lang.Boolean
- * java.lang.Float
- * java.lang.Double
- * java.lang.Long
- * java.lang.Short
- * java.lang.Byte
- * org.apache.hadoop.hive.common.`type`.HiveDecimal
- * byte[]
- * java.sql.Date
- * java.sql.Timestamp
- * Writables:
- * org.apache.hadoop.hive.serde2.io.HiveVarcharWritable
- * org.apache.hadoop.hive.serde2.io.HiveCharWritable
- * org.apache.hadoop.io.Text
- * org.apache.hadoop.io.IntWritable
- * org.apache.hadoop.hive.serde2.io.DoubleWritable
- * org.apache.hadoop.io.BooleanWritable
- * org.apache.hadoop.io.LongWritable
- * org.apache.hadoop.io.FloatWritable
- * org.apache.hadoop.hive.serde2.io.ShortWritable
- * org.apache.hadoop.hive.serde2.io.ByteWritable
- * org.apache.hadoop.io.BytesWritable
- * org.apache.hadoop.hive.serde2.io.DateWritable
- * org.apache.hadoop.hive.serde2.io.TimestampWritableV2
- * org.apache.hadoop.hive.serde2.io.HiveDecimalWritable
+ *   Java Boxed Primitives:
+ *       org.apache.hadoop.hive.common.type.HiveVarchar
+ *       org.apache.hadoop.hive.common.type.HiveChar
+ *       java.lang.String
+ *       java.lang.Integer
+ *       java.lang.Boolean
+ *       java.lang.Float
+ *       java.lang.Double
+ *       java.lang.Long
+ *       java.lang.Short
+ *       java.lang.Byte
+ *       org.apache.hadoop.hive.common.`type`.HiveDecimal
+ *       byte[]
+ *       java.sql.Date
+ *       java.sql.Timestamp
+ *   Writables:
+ *       org.apache.hadoop.hive.serde2.io.HiveVarcharWritable
+ *       org.apache.hadoop.hive.serde2.io.HiveCharWritable
+ *       org.apache.hadoop.io.Text
+ *       org.apache.hadoop.io.IntWritable
+ *       org.apache.hadoop.hive.serde2.io.DoubleWritable
+ *       org.apache.hadoop.io.BooleanWritable
+ *       org.apache.hadoop.io.LongWritable
+ *       org.apache.hadoop.io.FloatWritable
+ *       org.apache.hadoop.hive.serde2.io.ShortWritable
+ *       org.apache.hadoop.hive.serde2.io.ByteWritable
+ *       org.apache.hadoop.io.BytesWritable
+ *       org.apache.hadoop.hive.serde2.io.DateWritable
+ *       org.apache.hadoop.hive.serde2.io.TimestampWritableV2
+ *       org.apache.hadoop.hive.serde2.io.HiveDecimalWritable
  * Complex Type
- * List: Object[] / java.util.List
- * Map: java.util.Map
- * Struct: Object[] / java.util.List / java POJO
- * Union: class StandardUnion { byte tag; Object object }
+ *   List: Object[] / java.util.List
+ *   Map: java.util.Map
+ *   Struct: Object[] / java.util.List / java POJO
+ *   Union: class StandardUnion { byte tag; Object object }
  *
  * NOTICE: HiveVarchar/HiveChar is not supported by catalyst, it will be simply considered as
- * String type.
+ *  String type.
  *
  *
  * 2. Hive ObjectInspector is a group of flexible APIs to inspect value in different data
- * representation, and developers can extend those API as needed, so technically,
- * object inspector supports arbitrary data type in java.
+ *  representation, and developers can extend those API as needed, so technically,
+ *  object inspector supports arbitrary data type in java.
  *
  * Fortunately, only few built-in Hive Object Inspectors are used in generic udf/udaf/udtf
  * evaluation.
  * 1) Primitive Types (PrimitiveObjectInspector & its sub classes)
+  {{{
+   public interface PrimitiveObjectInspector {
+     // Java Primitives (java.lang.Integer, java.lang.String etc.)
+     Object getPrimitiveJavaObject(Object o);
+     // Writables (hadoop.io.IntWritable, hadoop.io.Text etc.)
+     Object getPrimitiveWritableObject(Object o);
+     // ObjectInspector only inspect the `writable` always return true, we need to check it
+     // before invoking the methods above.
+     boolean preferWritable();
+     ...
+   }
+  }}}
+
+ * 2) Complex Types:
+ *   ListObjectInspector: inspects java array or [[java.util.List]]
+ *   MapObjectInspector: inspects [[java.util.Map]]
+ *   Struct.StructObjectInspector: inspects java array, [[java.util.List]] and
+ *                                 even a normal java object (POJO)
+ *   UnionObjectInspector: (tag: Int, object data) (TODO: not supported by SparkSQL yet)
+ *
+ * 3) ConstantObjectInspector:
+ * Constant object inspector can be either primitive type or Complex type, and it bundles a
+ * constant value as its property, usually the value is created when the constant object inspector
+ * constructed.
  * {{{
- *public interface PrimitiveObjectInspector {
+   public interface ConstantObjectInspector extends ObjectInspector {
+      Object getWritableConstantValue();
+      ...
+    }
+  }}}
+ * Hive provides 3 built-in constant object inspectors:
+ * Primitive Object Inspectors:
+ *     WritableConstantStringObjectInspector
+ *     WritableConstantHiveVarcharObjectInspector
+ *     WritableConstantHiveCharObjectInspector
+ *     WritableConstantHiveDecimalObjectInspector
+ *     WritableConstantTimestampObjectInspector
+ *     WritableConstantIntObjectInspector
+ *     WritableConstantDoubleObjectInspector
+ *     WritableConstantBooleanObjectInspector
+ *     WritableConstantLongObjectInspector
+ *     WritableConstantFloatObjectInspector
+ *     WritableConstantShortObjectInspector
+ *     WritableConstantByteObjectInspector
+ *     WritableConstantBinaryObjectInspector
+ *     WritableConstantDateObjectInspector
+ * Map Object Inspector:
+ *     StandardConstantMapObjectInspector
+ * List Object Inspector:
+ *     StandardConstantListObjectInspector]]
+ * Struct Object Inspector: Hive doesn't provide the built-in constant object inspector for Struct
+ * Union Object Inspector: Hive doesn't provide the built-in constant object inspector for Union
+ *
+ *
+ * 3. This trait facilitates:
+ *    Data Unwrapping: Hive Data => Catalyst Data (unwrap)
+ *    Data Wrapping: Catalyst Data => Hive Data (wrap)
+ *    Binding the Object Inspector for Catalyst Data (toInspector)
+ *    Retrieving the Catalyst Data Type from Object Inspector (inspectorToDataType)
+ *
+ *
+ * 4. Future Improvement (TODO)
+ *   This implementation is quite ugly and inefficient:
+ *     a. Pattern matching in runtime
+ *     b. Small objects creation in catalyst data => writable
+ *     c. Unnecessary unwrap / wrap for nested UDF invoking:
+ *       e.g. date_add(printf("%s-%s-%s", a,b,c), 3)
+ *       We don't need to unwrap the data for printf and wrap it again and passes in data_add
  */
-/ Java Primitives (java.lang.Integer, java.lang.String etc.)
-* Object getPrimitiveJavaObject (Object o);
-*// Writables (hadoop.io.IntWritable, hadoop.io.Text etc.)
-* Object getPrimitiveWritableObject (Object o);
-*// ObjectInspector only inspect the `writable` always return true, we need to check it
-*// before invoking the methods above.
-* boolean preferWritable ();
-*...
-*
-}
-*
-}
-}
-}
-*
-* 2) Complex Types:
-* ListObjectInspector: inspects java array or[[java.util.List]]
-* MapObjectInspector: inspects[[java.util.Map]]
-* Struct.StructObjectInspector: inspects java array, [[java.util.List]] and
-* even a normal java object (POJO)
-* UnionObjectInspector: (tag: Int,
-
-object data
-
-) (TODO: not supported by SparkSQL yet)
-*
-* 3) ConstantObjectInspector:
-* Constant
-
-object inspector
-
-can be either primitive type or Complex type, and it bundles a
-* constant value as its property, usually the value is created when the constant
-
-object inspector
-
-* constructed.
-* { { {
-* public interface ConstantObjectInspector extends ObjectInspector {
-* Object getWritableConstantValue ();
-*...
-*
-}
-*
-}
-}
-}
-* Hive provides 3 built - in constant
-
-object inspectors
-
-:
-* Primitive Object Inspectors:
-* WritableConstantStringObjectInspector
-* WritableConstantHiveVarcharObjectInspector
-* WritableConstantHiveCharObjectInspector
-* WritableConstantHiveDecimalObjectInspector
-* WritableConstantTimestampObjectInspector
-* WritableConstantIntObjectInspector
-* WritableConstantDoubleObjectInspector
-* WritableConstantBooleanObjectInspector
-* WritableConstantLongObjectInspector
-* WritableConstantFloatObjectInspector
-* WritableConstantShortObjectInspector
-* WritableConstantByteObjectInspector
-* WritableConstantBinaryObjectInspector
-* WritableConstantDateObjectInspector
-* Map Object Inspector:
-* StandardConstantMapObjectInspector
-* List Object Inspector:
-* StandardConstantListObjectInspector]]
-* Struct Object Inspector: Hive doesn 't provide the built - in constant
-
-object inspector
-
-for Struct
-* Union Object Inspector: Hive doesn 't provide the built - in constant
-
-object inspector
-
-for Union
-*
-*
-* 3.This
-
-trait facilitates
-
-:
-* Data Unwrapping: Hive Data => Catalyst Data (unwrap)
-* Data Wrapping: Catalyst Data => Hive Data (wrap)
-* Binding the Object Inspector for Catalyst Data (toInspector)
-* Retrieving the Catalyst Data Type from Object Inspector (inspectorToDataType)
-*
-*
-* 4.Future Improvement (TODO)
-* This implementation is quite ugly and inefficient:
-* a.Pattern matching in runtime
-* b.Small objects creation in catalyst data => writable
-* c.Unnecessary unwrap / wrap for nested UDF invoking:
-* e.g.date_add (printf ("%s-%s-%s", a, b, c), 3)
-* We don 't need to unwrap the data for printf and wrap it again and passes in data_add
-*/
-
 private[hive] trait HiveInspectors {
 
   def javaTypeToDataType(clz: Type): DataType = clz match {
@@ -340,35 +303,35 @@ private[hive] trait HiveInspectors {
         withNullSafe(o => getByteWritable(o))
       case _: ByteObjectInspector =>
         withNullSafe(o => o.asInstanceOf[java.lang.Byte])
-      // To spark HiveVarchar and HiveChar are same as string
+        // To spark HiveVarchar and HiveChar are same as string
       case _: HiveVarcharObjectInspector if x.preferWritable() =>
         withNullSafe(o => getStringWritable(o))
       case _: HiveVarcharObjectInspector =>
         withNullSafe { o =>
-          val s = o.asInstanceOf[UTF8String].toString
-          new HiveVarchar(s, s.length)
+            val s = o.asInstanceOf[UTF8String].toString
+            new HiveVarchar(s, s.length)
         }
       case _: HiveCharObjectInspector if x.preferWritable() =>
         withNullSafe(o => getStringWritable(o))
       case _: HiveCharObjectInspector =>
         withNullSafe { o =>
-          val s = o.asInstanceOf[UTF8String].toString
-          new HiveChar(s, s.length)
-        }
+            val s = o.asInstanceOf[UTF8String].toString
+            new HiveChar(s, s.length)
+          }
       case _: JavaHiveDecimalObjectInspector =>
         withNullSafe(o =>
           HiveDecimal.create(o.asInstanceOf[Decimal].toJavaBigDecimal))
       case _: JavaDateObjectInspector =>
         withNullSafe(o =>
-          DateTimeUtils.toJavaDate(o.asInstanceOf[Int]))
+            DateTimeUtils.toJavaDate(o.asInstanceOf[Int]))
       case _: JavaTimestampObjectInspector =>
         withNullSafe(o =>
-          DateTimeUtils.toJavaTimestamp(o.asInstanceOf[Long]))
+            DateTimeUtils.toJavaTimestamp(o.asInstanceOf[Long]))
       case _: HiveDecimalObjectInspector if x.preferWritable() =>
         withNullSafe(o => getDecimalWritable(o.asInstanceOf[Decimal]))
       case _: HiveDecimalObjectInspector =>
         withNullSafe(o =>
-          HiveDecimal.create(o.asInstanceOf[Decimal].toJavaBigDecimal))
+            HiveDecimal.create(o.asInstanceOf[Decimal].toJavaBigDecimal))
       case _: BinaryObjectInspector if x.preferWritable() =>
         withNullSafe(o => getBinaryWritable(o))
       case _: BinaryObjectInspector =>
@@ -413,9 +376,9 @@ private[hive] trait HiveInspectors {
           case ((field, wrapper), i) =>
             val tpe = structType(i).dataType
             ssoi.setStructFieldData(
-              result,
-              field,
-              wrapper(row.get(i, tpe)).asInstanceOf[AnyRef])
+            result,
+            field,
+            wrapper(row.get(i, tpe)).asInstanceOf[AnyRef])
         }
         result
       }
@@ -430,8 +393,8 @@ private[hive] trait HiveInspectors {
         val result = new java.util.ArrayList[AnyRef](wrappers.size)
         soi.getAllStructFieldRefs.asScala.zip(wrappers).zipWithIndex.foreach {
           case ((field, wrapper), i) =>
-            val tpe = structType(i).dataType
-            result.add(wrapper(row.get(i, tpe)).asInstanceOf[AnyRef])
+          val tpe = structType(i).dataType
+          result.add(wrapper(row.get(i, tpe)).asInstanceOf[AnyRef])
         }
         result
       }
@@ -451,12 +414,12 @@ private[hive] trait HiveInspectors {
       val keyWrapper = wrapperFor(moi.getMapKeyObjectInspector, mt.keyType)
       val valueWrapper = wrapperFor(moi.getMapValueObjectInspector, mt.valueType)
       withNullSafe { o =>
-        val map = o.asInstanceOf[MapData]
-        val jmap = new java.util.HashMap[Any, Any](map.numElements())
-        map.foreach(mt.keyType, mt.valueType, (k, v) =>
-          jmap.put(keyWrapper(k), valueWrapper(v)))
-        jmap
-      }
+          val map = o.asInstanceOf[MapData]
+          val jmap = new java.util.HashMap[Any, Any](map.numElements())
+          map.foreach(mt.keyType, mt.valueType, (k, v) =>
+            jmap.put(keyWrapper(k), valueWrapper(v)))
+          jmap
+        }
 
     case _ =>
       identity[Any]
@@ -468,11 +431,11 @@ private[hive] trait HiveInspectors {
    *
    * Strictly follows the following order in unwrapping (constant OI has the higher priority):
    * Constant Null object inspector =>
-   * return null
+   *   return null
    * Constant object inspector =>
-   * extract the value from constant object inspector
+   *   extract the value from constant object inspector
    * If object inspector prefers writable =>
-   * extract writable from `data` and then get the catalyst type from the writable
+   *   extract writable from `data` and then get the catalyst type from the writable
    * Extract the java object directly from the object inspector
    *
    * NOTICE: the complex data type requires recursive unwrapping.
@@ -732,7 +695,7 @@ private[hive] trait HiveInspectors {
         }
         data: Any => {
           if (data != null) {
-            InternalRow.fromSeq(unwrappers.map(_ (data)).toSeq)
+            InternalRow.fromSeq(unwrappers.map(_(data)).toSeq)
           } else {
             null
           }
@@ -773,10 +736,10 @@ private[hive] trait HiveInspectors {
   }
 
   def wrap(
-            row: InternalRow,
-            wrappers: Array[(Any) => Any],
-            cache: Array[AnyRef],
-            dataTypes: Array[DataType]): Array[AnyRef] = {
+      row: InternalRow,
+      wrappers: Array[(Any) => Any],
+      cache: Array[AnyRef],
+      dataTypes: Array[DataType]): Array[AnyRef] = {
     var i = 0
     val length = wrappers.length
     while (i < length) {
@@ -787,10 +750,10 @@ private[hive] trait HiveInspectors {
   }
 
   def wrap(
-            row: Seq[Any],
-            wrappers: Array[(Any) => Any],
-            cache: Array[AnyRef],
-            dataTypes: Array[DataType]): Array[AnyRef] = {
+      row: Seq[Any],
+      wrappers: Array[(Any) => Any],
+      cache: Array[AnyRef],
+      dataTypes: Array[DataType]): Array[AnyRef] = {
     var i = 0
     val length = wrappers.length
     while (i < length) {
@@ -803,7 +766,7 @@ private[hive] trait HiveInspectors {
   /**
    * @param dataType Catalyst data type
    * @return Hive java object inspector (recursively), not the Writable ObjectInspector
-   *         We can easily map to the Hive built-in object inspector according to the data type.
+   * We can easily map to the Hive built-in object inspector according to the data type.
    */
   def toInspector(dataType: DataType): ObjectInspector = dataType match {
     case ArrayType(tpe, _) =>
@@ -827,8 +790,8 @@ private[hive] trait HiveInspectors {
     case DecimalType() => PrimitiveObjectInspectorFactory.javaHiveDecimalObjectInspector
     case StructType(fields) =>
       ObjectInspectorFactory.getStandardStructObjectInspector(
-        java.util.Arrays.asList(fields.map(f => f.name): _*),
-        java.util.Arrays.asList(fields.map(f => toInspector(f.dataType)): _*))
+        java.util.Arrays.asList(fields.map(f => f.name) : _*),
+        java.util.Arrays.asList(fields.map(f => toInspector(f.dataType)) : _*))
     case _: UserDefinedType[_] =>
       val sqlType = dataType.asInstanceOf[UserDefinedType[_]].sqlType
       toInspector(sqlType)
@@ -838,7 +801,6 @@ private[hive] trait HiveInspectors {
    * Map the catalyst expression to ObjectInspector, however,
    * if the expression is `Literal` or foldable, a constant writable object inspector returns;
    * Otherwise, we always get the object inspector according to its data type(in catalyst)
-   *
    * @param expr Catalyst expression to be mapped
    * @return Hive java objectinspector (recursively).
    */
@@ -1074,7 +1036,6 @@ private[hive] trait HiveInspectors {
     }
 
   implicit class typeInfoConversions(dt: DataType) {
-
     import org.apache.hadoop.hive.serde2.typeinfo._
     import TypeInfoFactory._
 
@@ -1110,5 +1071,4 @@ private[hive] trait HiveInspectors {
           s"${dt.catalogString} cannot be converted to Hive TypeInfo")
     }
   }
-
 }
