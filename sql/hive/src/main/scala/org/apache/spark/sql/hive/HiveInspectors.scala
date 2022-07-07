@@ -186,7 +186,7 @@ private[hive] trait HiveInspectors {
     case c: Class[_] if c == classOf[hiveIo.HiveDecimalWritable] => DecimalType.SYSTEM_DEFAULT
     case c: Class[_] if c == classOf[hiveIo.ByteWritable] => ByteType
     case c: Class[_] if c == classOf[hiveIo.ShortWritable] => ShortType
-    case c: Class[_] if c == classOf[hiveIo.DateWritable] => DateType
+    case c: Class[_] if c == classOf[hiveIo.DateWritableV2] => DateType
     case c: Class[_] if c == classOf[hiveIo.TimestampWritableV2] => TimestampType
     case c: Class[_] if c == classOf[hadoopIo.Text] => StringType
     case c: Class[_] if c == classOf[hadoopIo.IntWritable] => IntegerType
