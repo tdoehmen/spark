@@ -98,6 +98,10 @@
       <artifactId>hive-storage-api</artifactId>
     </dependency>
     <dependency>
+      <groupId>${hive.group}</groupId>
+      <artifactId>hive-serde</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.apache.parquet</groupId>
       <artifactId>parquet-column</artifactId>
     </dependency>
