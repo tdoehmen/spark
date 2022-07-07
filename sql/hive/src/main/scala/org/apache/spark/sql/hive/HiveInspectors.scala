@@ -91,7 +91,7 @@ import org.apache.spark.unsafe.types.UTF8String
  *       org.apache.hadoop.hive.serde2.io.ByteWritable
  *       org.apache.hadoop.io.BytesWritable
  *       org.apache.hadoop.hive.serde2.io.DateWritable
- *       org.apache.hadoop.hive.serde2.io.TimestampWritable
+ *       org.apache.hadoop.hive.serde2.io.TimestampWritableV2
  *       org.apache.hadoop.hive.serde2.io.HiveDecimalWritable
  * Complex Type
  *   List: Object[] / java.util.List
@@ -189,7 +189,7 @@ private[hive] trait HiveInspectors {
     case c: Class[_] if c == classOf[hiveIo.ByteWritable] => ByteType
     case c: Class[_] if c == classOf[hiveIo.ShortWritable] => ShortType
     case c: Class[_] if c == classOf[hiveIo.DateWritable] => DateType
-    case c: Class[_] if c == classOf[hiveIo.TimestampWritable] => TimestampType
+    case c: Class[_] if c == classOf[hiveIo.TimestampWritableV2] => TimestampType
     case c: Class[_] if c == classOf[hadoopIo.Text] => StringType
     case c: Class[_] if c == classOf[hadoopIo.IntWritable] => IntegerType
     case c: Class[_] if c == classOf[hadoopIo.LongWritable] => LongType
@@ -1020,11 +1020,11 @@ private[hive] trait HiveInspectors {
       new DaysWritable(value.asInstanceOf[Int])
     }
 
-  private def getTimestampWritable(value: Any): hiveIo.TimestampWritable =
+  private def getTimestampWritable(value: Any): hiveIo.TimestampWritableV2 =
     if (value == null) {
       null
     } else {
-      new hiveIo.TimestampWritable(DateTimeUtils.toJavaTimestamp(value.asInstanceOf[Long]))
+      new hiveIo.TimestampWritableV2(DateTimeUtils.toJavaTimestamp(value.asInstanceOf[Long]))
     }
 
   private def getDecimalWritable(value: Any): hiveIo.HiveDecimalWritable =
