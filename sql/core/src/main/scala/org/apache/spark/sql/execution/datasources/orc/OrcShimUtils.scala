@@ -21,7 +21,8 @@ import org.apache.hadoop.hive.common.`type`.HiveDecimal
 import org.apache.hadoop.hive.ql.exec.vector.VectorizedRowBatch
 import org.apache.hadoop.hive.ql.io.sarg.{SearchArgument => OrcSearchArgument}
 import org.apache.hadoop.hive.ql.io.sarg.PredicateLeaf.{Operator => OrcOperator}
-import org.apache.hadoop.hive.serde2.io.{DateWritableV2, HiveDecimalWritable}
+import org.apache.hadoop.hive.serde2.io.{DateWritable, HiveDecimalWritable}
+
 import org.apache.spark.sql.catalyst.expressions.SpecializedGetters
 import org.apache.spark.sql.execution.datasources.DaysWritable
 import org.apache.spark.sql.types.Decimal
@@ -37,7 +38,7 @@ private[sql] object OrcShimUtils {
   private[sql] type SearchArgument = OrcSearchArgument
 
   def getGregorianDays(value: Any): Int = {
-    new DaysWritable(value.asInstanceOf[DateWritableV2]).gregorianDays
+    new DaysWritable(value.asInstanceOf[DateWritable]).gregorianDays
   }
 
   def getDecimal(value: Any): Decimal = {
@@ -45,7 +46,7 @@ private[sql] object OrcShimUtils {
     Decimal(decimal.bigDecimalValue, decimal.precision(), decimal.scale())
   }
 
-  def getDateWritable(reuseObj: Boolean): (SpecializedGetters, Int) => DateWritableV2 = {
+  def getDateWritable(reuseObj: Boolean): (SpecializedGetters, Int) => DateWritable = {
     if (reuseObj) {
       val result = new DaysWritable()
       (getter, ordinal) =>
